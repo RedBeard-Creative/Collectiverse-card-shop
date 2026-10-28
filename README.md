@@ -6,9 +6,9 @@ This is a **separate character preview**, not the Collectiverse Tycoon game. The
 
 Open the playable editor at:
 
-**https://stackblitz.com/fork/github/RedBeard-Creative/ThatchersGame/tree/collectiverse-character-lab?startScript=dev**
+**https://stackblitz.com/github/RedBeard-Creative/Collectiverse-card-shop?startScript=dev**
 
-This is a standalone preview kept on a separate `collectiverse-character-lab` branch. **This repository is public, so it can be imported into StackBlitz without private-repository access.** Open https://stackblitz.com/github/RedBeard-Creative/Collectiverse-card-shop?startScript=dev . It **does not modify Wildbound on the main branch**. Click the preview's **Open in New Tab** button if the 3D scene looks small. The first load may take a moment while StackBlitz installs Three.js and downloads the original Quaternius model files.
+This is a standalone preview in its own `Collectiverse-card-shop` repository. **This repository is public, so it can be imported into StackBlitz without private-repository access.** Open https://stackblitz.com/github/RedBeard-Creative/Collectiverse-card-shop?startScript=dev . It **does not modify Wildbound on the main branch**. Click the preview's **Open in New Tab** button if the 3D scene looks small. The first load may take a moment while StackBlitz installs Three.js and downloads the original Quaternius model files.
 
 ## Optional manual import (Chromebook)
 
@@ -22,7 +22,7 @@ This is a standalone preview kept on a separate `collectiverse-character-lab` br
 
 - Drag to rotate; mouse-wheel to zoom; right-drag to pan.
 - Choose Man, Woman, or Both; front, side, back and zoom controls.
-- Choose any of the 11 real male or 10 real female character variants.
+- Choose simple everyday male or female looks; themed king, astronaut, soldier, and fantasy costumes are intentionally hidden.
 - Choose among **24 original animations** (depends on the loaded file).
 - Adjust original material colors and save named variants in local storage.
 - Export named variants to JSON for future Collectiverse development.
