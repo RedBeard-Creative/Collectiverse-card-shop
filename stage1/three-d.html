@@ -27,13 +27,13 @@ const textures=document.createElement('canvas');textures.width=textures.height=1
 const plaster=new THREE.CanvasTexture(textures);plaster.wrapS=plaster.wrapT=THREE.RepeatWrapping;plaster.repeat.set(3,2);white.map=plaster;white.needsUpdate=true;
 const trim=mat('#8c6950');box(room,0,.1,-M/2+.02,N,.2,.075,trim);box(room,-N/2+.04,.1,0,.075,.2,M,trim);box(room,N/2-.04,.1,0,.075,.2,M,trim);
 const roof=new THREE.Group();scene.add(roof);box(roof,0,3.1,0,N+.5,.24,M+.6,mat('#665d59'));
-const roofPieces=[roof,...room.children.filter(o=>o.geometry?.type==='BoxGeometry'&&o.position.y>2.45&&o!==sign&&o!==shopSign)];
+const roofPieces=[roof];
 function syncCameraWalls(){const building=view==='overhead';roof.visible=!building;for(const o of roofPieces.slice(1))if(o!==sign)o.visible=!building;exterior.visible=true}
 const ghost=new THREE.Group();scene.add(ghost);let hoverCell=null;
 function updateGhost(){ghost.clear();if(!placing||view!=='overhead'||!hoverCell)return;const [x,y]=hoverCell;const blocked=game.objects.some(o=>o.x===x&&o.y===y)||(x===Math.round(game.player.x)&&y===Math.round(game.player.y))||(y===8&&(x===5||x===6));const [px,pz]=coord(x,y);
 const material=new THREE.MeshBasicMaterial({color:blocked?0xef5b59:0x60e9ac,transparent:true,opacity:.35,depthWrite:false});
 const outline=new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(.88,placing==='shelf'||placing==='display'?1.4:.9,.72)),new THREE.LineBasicMaterial({color:blocked?0xff6666:0x79ffba}));
-outline.position.set(px,(placing==='shelf'||placing==='display'?.7:.45),pz);ghost.add(outline);box(ghost,px,.035,pz,.88,.05,.72,material)}
+outline.position.set(px,((placing==='shelf'||placing==='display')?.7:.45),pz);ghost.add(outline);box(ghost,px,.035,pz,.88,.05,.72,material)}
 
 function person(color){const g=new THREE.Group();const body=mat(color);box(g,0,.86,0,.52,.72,.3,body);const head=new THREE.Mesh(new THREE.SphereGeometry(.23,12,8),skin);head.position.y=1.48;g.add(head);const parts=[];for(let i=0;i<2;i++){parts.push(box(g,i? .36:-.36,.88,0,.16,.65,.16,skin));parts.push(box(g,i? .15:-.15,.26,0,.19,.52,.19,pants))}g.userData.parts=parts;return g}
 const player=person('#2e84c1');actors.add(player);let mixer=null;
