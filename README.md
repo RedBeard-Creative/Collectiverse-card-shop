@@ -8,7 +8,7 @@ Open the playable editor at:
 
 **https://stackblitz.com/fork/github/RedBeard-Creative/ThatchersGame/tree/collectiverse-character-lab?startScript=dev**
 
-This is a standalone preview kept on a separate `collectiverse-character-lab` branch. **The GitHub repository is private: direct private-repo import into StackBlitz may require a paid StackBlitz membership.** If StackBlitz says repository not found, use the manual ZIP import rather than changing the existing Wildbound repository's privacy. It **does not modify Wildbound on the main branch**. Click the preview's **Open in New Tab** button if the 3D scene looks small. The first load may take a moment while StackBlitz installs Three.js and downloads the original Quaternius model files.
+This is a standalone preview kept on a separate `collectiverse-character-lab` branch. **This repository is public, so it can be imported into StackBlitz without private-repository access.** Open https://stackblitz.com/github/RedBeard-Creative/Collectiverse-card-shop?startScript=dev . It **does not modify Wildbound on the main branch**. Click the preview's **Open in New Tab** button if the 3D scene looks small. The first load may take a moment while StackBlitz installs Three.js and downloads the original Quaternius model files.
 
 ## Optional manual import (Chromebook)
 
