@@ -18,7 +18,11 @@ box(room,-3.5,1.2,M/2+.13,5,2.4,.2,white);box(room,3.5,1.2,M/2+.13,5,2.4,.2,whit
 const sign=box(room,0,2.45,-M/2+.04,4,.7,.12,mat('#246f77'));
 const exterior=new THREE.Group();scene.add(exterior);
 const brick=mat('#976e5b'),mortar=mat('#bc9a84'),sidewalk=mat('#aeb2b0'),road=mat('#515a62'),glass=new THREE.MeshStandardMaterial({color:'#9ed2df',metalness:.15,roughness:.18,transparent:true,opacity:.58});
-box(exterior,0,-.2,M/2+2.25,N+30,.16,3.9,sidewalk);box(exterior,0,-.25,M/2+7,N+30,.15,5,road);
+// Road extends beyond the playable shopping block and bends out of sight at both ends.
+const route=[],roadSegments=new THREE.Group();exterior.add(roadSegments);
+function streetCenter(t){const a=Math.abs(t);if(a<=20)return [t,M/2+7];const d=a-20,rad=Math.min(d/15,Math.PI*.62);return [Math.sign(t)*(20+15*Math.sin(rad)),M/2+7+15*(1-Math.cos(rad))]}
+for(let t=-42;t<42;t+=1){const [x,z]=streetCenter(t),[nx,nz]=streetCenter(t+1),len=Math.hypot(nx-x,nz-z),angle=Math.atan2(nx-x,nz-z);const segment=new THREE.Group();segment.position.set((x+nx)/2,0,(z+nz)/2);segment.rotation.y=angle;roadSegments.add(segment);box(segment,0,-.27,0,7,.13,len+.13,road);box(segment,0,-.18,-5.9,4,.13,len+.14,sidewalk);box(segment,0,-.18,5.9,3,.13,len+.14,sidewalk);if(Math.round(t)%4<2)box(segment,0,-.193,0,.11,.012,.6,mat('#e7dfac'))}
+box(exterior,0,-.2,M/2+2.1,N+27,.12,2.1,sidewalk);
 function makeSign(parent,label,width){const canvas=document.createElement('canvas');canvas.width=512;canvas.height=100;const ctx=canvas.getContext('2d');ctx.fillStyle='#344f60';ctx.fillRect(0,0,512,100);ctx.fillStyle='#fff6e0';ctx.font='bold 43px sans-serif';ctx.textAlign='center';ctx.fillText(label,256,65);const mesh=new THREE.Mesh(new THREE.PlaneGeometry(width,.55),new THREE.MeshBasicMaterial({map:new THREE.CanvasTexture(canvas),side:THREE.DoubleSide}));parent.add(mesh);return mesh}
 const shopSign=makeSign(room,'COLLECTIVERSE',3.8);shopSign.position.set(0,2.44,M/2+.25);
 for(const [i,label] of ['LANTERN BOOKS','COPPER CAFE','PIXEL ARCADE','CORNER GOODS'].entries()){const x=(i<2?-1:1)*(N/2+2.15+(i%2)*4.4),g=new THREE.Group();g.position.set(x,0,M/2-1);exterior.add(g);box(g,0,1.7,0,4.1,3.4,4,brick);box(g,0,1.25,2.04,3.1,1.5,.1,glass);box(g,0,.75,2.14,.09,1.5,.12,mortar);box(g,0,2.35,2.14,3.5,.83,.15,mortar);const name=makeSign(g,label,3.4);name.position.set(0,2.35,2.25);for(const col of [-1,1])box(g,col*1.15,3.05,2.04,.68,.45,.09,glass)}
@@ -58,10 +62,10 @@ window.onkeydown=e=>{if(['INPUT','TEXTAREA'].includes(e.target.tagName))return;k
 function loop(now){requestAnimationFrame(loop);const dt=Math.min(.05,(now-last)/1000);last=now;
  const rawX=(keys.d||keys.arrowright?1:0)-(keys.a||keys.arrowleft?1:0),rawY=(keys.s||keys.arrowdown?1:0)-(keys.w||keys.arrowup?1:0);
  let dx=rawX,dy=rawY;
- if(view==='first'){dx=Math.cos(facing)*rawX+Math.sin(facing)*rawY;dy=-Math.sin(facing)*rawX+Math.cos(facing)*rawY;}
- const len=Math.hypot(dx,dy);if(len>0){dx/=len;dy/=len;const nx=Math.max(0,Math.min(N-1,game.player.x+dx*dt*2.5)),ny=Math.max(0,Math.min(M-1,game.player.y+dy*dt*2.5));if(!game.objects.some(o=>o.x===Math.round(nx)&&o.y===Math.round(game.player.y)))game.player.x=nx;if(!game.objects.some(o=>o.x===Math.round(game.player.x)&&o.y===Math.round(ny)))game.player.y=ny;if(view!=='first')facing=Math.atan2(-dx,-dy);}
+ if(view==='first'){dx=Math.cos(facing)*rawX-Math.sin(facing)*rawY;dy=-Math.sin(facing)*rawX-Math.cos(facing)*rawY;}
+ const len=Math.hypot(dx,dy);if(len>0){dx/=len;dy/=len;const nx=Math.max(-30,Math.min(N+30,game.player.x+dx*dt*2.5)),ny=Math.max(-12,Math.min(M+23,game.player.y+dy*dt*2.5));if(!game.objects.some(o=>o.x===Math.round(nx)&&o.y===Math.round(game.player.y)))game.player.x=nx;if(!game.objects.some(o=>o.x===Math.round(game.player.x)&&o.y===Math.round(ny)))game.player.y=ny;if(view!=='first')facing=Math.atan2(-dx,-dy);}
  const [x,z]=coord(game.player.x,game.player.y);player.position.set(x,0,z);
- player.rotation.y=facing;player.visible=view!=='first';if(mixer)mixer.update(len?dt:0);
+ player.rotation.y=facing+Math.PI;player.visible=view!=='first';if(mixer)mixer.update(len?dt:0);
  for(let i=0;i<player.userData.parts.length;i++)player.userData.parts[i].rotation.x=len?Math.sin(now*.011+i*Math.PI)*.35:0;
  if(view==='first'){cam.position.set(x,1.58,z);cam.rotation.order='YXZ';cam.rotation.set(lookPitch,facing,0)}
  else if(view==='third')controls.target.lerp(new THREE.Vector3(x,1,z),Math.min(1,dt*4));
