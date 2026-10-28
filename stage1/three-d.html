@@ -3,7 +3,7 @@ import * as THREE from 'three';import {OrbitControls} from 'three/addons/control
 const $=id=>document.getElementById(id),N=12,M=9,key='collectiverse-3d-stage1';
 const items={booster:[3,6,5],mystery:[7,12,2],pin:[2,4,5],stickers:[2,5,5],binder:[8,16,2]},prices={shelf:15,counter:10,bin:9,display:20};
 const fresh=()=>({cash:100,level:1,day:1,sales:0,open:false,inventory:{booster:0,mystery:0,pin:0,stickers:0,binder:0},objects:[],player:{x:5,y:6}});
-let game;try{game={...fresh(),...JSON.parse(localStorage.getItem(key))};}catch{game=fresh()}game.open=false;let customers=[],placing='',selected=null,view='first',keys={},spawn=0,timer=0,last=performance.now();
+let game;try{game={...fresh(),...JSON.parse(localStorage.getItem(key))};}catch{game=fresh()}game.open=false;game.expansions={left:false,right:false,...(game.expansions||{})};let customers=[],placing='',selected=null,view='first',keys={},spawn=0,timer=0,last=performance.now();
 const scene=new THREE.Scene();scene.background=new THREE.Color('#a0bdd0');const cam=new THREE.PerspectiveCamera(60,1,.1,100);cam.position.set(8,12,13);const renderer=new THREE.WebGLRenderer({canvas:$('view'),antialias:true,powerPreference:'high-performance'});renderer.setPixelRatio(Math.min(devicePixelRatio,1.25));renderer.outputColorSpace=THREE.SRGBColorSpace;
 const controls=new OrbitControls(cam,$('view'));controls.enableDamping=true;controls.target.set(0,1,0);controls.maxPolarAngle=1.54;controls.maxDistance=30;controls.minDistance=2;
 scene.add(new THREE.HemisphereLight(0xffffff,0x8194ac,2.2));const light=new THREE.DirectionalLight(0xfff0d8,3);light.position.set(-6,13,8);scene.add(light);
@@ -115,12 +115,36 @@ const textures=document.createElement('canvas');textures.width=textures.height=1
 const plaster=new THREE.CanvasTexture(textures);plaster.wrapS=plaster.wrapT=THREE.RepeatWrapping;plaster.repeat.set(3,2);white.map=plaster;white.needsUpdate=true;
 const trim=mat('#8c6950');box(room,0,.1,-M/2+.02,N,.2,.075,trim);box(room,-N/2+.04,.1,0,.075,.2,M,trim);box(room,N/2-.04,.1,0,.075,.2,M,trim);
 const roof=new THREE.Group();scene.add(roof);box(roof,0,3.1,0,N+.5,.24,M+.6,mat('#665d59'));
+
+// Connected storefront expansion bays. The initial lease is the center five columns;
+// the left bay is three columns, the right bay four. Both have full floors behind glass.
+const bayPartitions=new THREE.Group();room.add(bayPartitions);
+const gateGlass=new THREE.MeshPhysicalMaterial({color:'#88b3c4',transparent:true,opacity:.26,roughness:.2,metalness:.1,side:THREE.DoubleSide,depthWrite:false});
+const gateFrame=mat('#344852'),gateTint=mat('#acc2b2');
+function partitionPanel(x,side){
+ const group=new THREE.Group();bayPartitions.add(group);group.position.x=x;
+ box(group,0,1.4,0,.09,2.8,M,gateGlass);
+ for(const z of [-M/2,0,M/2])box(group,0,1.4,z,.15,2.85,.13,gateFrame);
+ box(group,0,2.77,0,.17,.11,M,gateFrame);box(group,0,.08,0,.14,.15,M,gateFrame);
+ const banner=makeSign(group,side==='left'?'SMALL EXPANSION':'LARGE EXPANSION',2.7);
+ banner.position.set(side==='left'?.12:-.12,1.9,0);banner.rotation.y=side==='left'?Math.PI/2:-Math.PI/2;
+ return group;
+}
+const leftGate=partitionPanel(-2.5,'left'),rightGate=partitionPanel(2.5,'right');
+const bayDecor=new THREE.Group();room.add(bayDecor);
+for(const [cx,w] of [[-4.5,3],[4,4]]){
+ box(bayDecor,cx,.042,0,w-.08,.035,M-.1,mat('#b6bdbd'));
+ for(let z=-3.8;z<4.4;z+=.9)box(bayDecor,cx,.067,z,w-.1,.008,.018,mat('#879fa2'));
+}
+function ownedColumn(x){return x>=3&&x<=7||(x<3&&game.expansions.left)||(x>7&&game.expansions.right)}
+function syncExpansion(){leftGate.visible=!game.expansions.left;rightGate.visible=!game.expansions.right}
+syncExpansion();
 const roofPieces=[roof];roof.add(ceilingFeatures);room.remove(ceilingFeatures);
 function syncCameraWalls(){const building=view==='overhead';roof.visible=!building;for(const o of roofPieces.slice(1))if(o!==sign)o.visible=!building;exterior.visible=true}
 const clouds=new THREE.Group();scene.add(clouds);const cloudMaterial=new THREE.MeshBasicMaterial({color:'#f4f7fa',transparent:true,opacity:.82,depthWrite:false});
 for(let i=0;i<12;i++){const g=new THREE.Group();g.position.set(-70+i*13,16+(i%3)*3,-22+(i%5)*16);for(let j=0;j<3;j++){const m=new THREE.Mesh(new THREE.SphereGeometry(2.4,9,6),cloudMaterial);m.scale.set(1.7,.47,1);m.position.set((j-1)*2.2,(j%2)*.4,0);g.add(m)}clouds.add(g)}
 const ghost=new THREE.Group();scene.add(ghost);let hoverCell=null;
-function updateGhost(){ghost.clear();if(!placing||view!=='overhead'||!hoverCell)return;const [x,y]=hoverCell;const blocked=game.objects.some(o=>o.x===x&&o.y===y)||(x===Math.round(game.player.x)&&y===Math.round(game.player.y))||(y===8&&(x===5||x===6));const [px,pz]=coord(x,y);
+function updateGhost(){ghost.clear();if(!placing||view!=='overhead'||!hoverCell)return;const [x,y]=hoverCell;const blocked=!ownedColumn(x)||game.objects.some(o=>o.x===x&&o.y===y)||(x===Math.round(game.player.x)&&y===Math.round(game.player.y))||(y===8&&(x===5||x===6));const [px,pz]=coord(x,y);
 const material=new THREE.MeshBasicMaterial({color:blocked?0xef5b59:0x60e9ac,transparent:true,opacity:.35,depthWrite:false});
 const outline=new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(.88,placing==='shelf'||placing==='display'?1.4:.9,.72)),new THREE.LineBasicMaterial({color:blocked?0xff6666:0x79ffba}));
 outline.position.set(px,((placing==='shelf'||placing==='display')?.7:.45),pz);ghost.add(outline);box(ghost,px,.035,pz,.88,.05,.72,material)}
@@ -140,7 +164,7 @@ const n=Math.min(10,Object.values(o.stock||{}).reduce((a,b)=>a+b,0));for(let i=0
 function save(){localStorage.setItem(key,JSON.stringify({...game,open:false}));ui()}
 function message(s){$('status').textContent=s}
 function ui(){$('stats').textContent='LEVEL '+game.level+'  •  $'+game.cash+'  •  Day '+game.day+'  •  '+game.sales+' sales'+(game.open?'  •  OPEN':'');$('stock').textContent='Warehouse: '+Object.entries(game.inventory).map(([k,v])=>k+': '+v).join(' | ');$('unlock').disabled=game.cash<110||game.level>1;for(const b of document.querySelectorAll('[data-build]'))b.disabled=game.open||game.cash<prices[b.dataset.build]||(b.dataset.build==='display'&&game.level<2);for(const b of document.querySelectorAll('[data-buy]')){const k=b.dataset.buy;b.disabled=game.cash<items[k][0]*items[k][2]||(game.level<2&&['stickers','binder'].includes(k))}}
-function place(x,y){if(placing){if(game.open)return message('Close before building');if(game.cash<prices[placing])return;if(game.objects.some(o=>o.x===x&&o.y===y)||(x===game.player.x&&y===game.player.y)||(y===8&&(x===5||x===6)))return message('Square blocked');game.cash-=prices[placing];game.objects.push({id:Date.now()+Math.random(),x,y,type:placing,...(['shelf','display'].includes(placing)?{stock:{}}:{})});placing='';updateGhost();save();message('3D furniture placed!')}else{selected=game.objects.find(o=>o.x===x&&o.y===y&&o.stock)?.id||null;message(selected?'Shelf selected — click Stock shelf or press T':'Select a shelf to stock')}} 
+function place(x,y){if(placing){if(game.open)return message('Close before building');if(game.cash<prices[placing])return;if(!ownedColumn(x))return message('This storefront bay is locked — purchase the expansion in your phone');if(game.objects.some(o=>o.x===x&&o.y===y)||(x===game.player.x&&y===game.player.y)||(y===8&&(x===5||x===6)))return message('Square blocked');game.cash-=prices[placing];game.objects.push({id:Date.now()+Math.random(),x,y,type:placing,...(['shelf','display'].includes(placing)?{stock:{}}:{})});placing='';updateGhost();save();message('3D furniture placed!')}else{selected=game.objects.find(o=>o.x===x&&o.y===y&&o.stock)?.id||null;message(selected?'Shelf selected — click Stock shelf or press T':'Select a shelf to stock')}} 
 const ray=new THREE.Raycaster(),mouse=new THREE.Vector2(),point=new THREE.Vector3(),plane=new THREE.Plane(new THREE.Vector3(0,1,0),0);let down=null;
 $('view').onpointerdown=e=>{down=[e.clientX,e.clientY];if(view==='first'){firstDragging=true;previousPointer=[e.clientX,e.clientY];$('view').setPointerCapture(e.pointerId)}};$('view').onpointermove=e=>{if(view==='overhead'&&placing){const r=$('view').getBoundingClientRect();mouse.set((e.clientX-r.left)/r.width*2-1,-((e.clientY-r.top)/r.height*2-1));ray.setFromCamera(mouse,cam);if(ray.ray.intersectPlane(plane,point)){const x=Math.floor(point.x+N/2),y=Math.floor(point.z+M/2);hoverCell=x>=0&&x<N&&y>=0&&y<M?[x,y]:null;updateGhost()}}if(view!=='first'||!firstDragging||!previousPointer)return;facing-=(e.clientX-previousPointer[0])*.006;lookPitch=Math.max(-1.2,Math.min(1.2,lookPitch-(e.clientY-previousPointer[1])*.004));previousPointer=[e.clientX,e.clientY]};$('view').onpointercancel=()=>{firstDragging=false;previousPointer=null};$('view').onpointerup=e=>{if(view==='first'){firstDragging=false;previousPointer=null;return}if(!down||Math.hypot(e.clientX-down[0],e.clientY-down[1])>5)return;const r=$('view').getBoundingClientRect();mouse.set((e.clientX-r.left)/r.width*2-1,-((e.clientY-r.top)/r.height*2-1));ray.setFromCamera(mouse,cam);if(ray.ray.intersectPlane(plane,point)){const x=Math.floor(point.x+N/2),y=Math.floor(point.z+M/2);if(x>=0&&x<N&&y>=0&&y<M)place(x,y)}};
 function fill(){const o=game.objects.find(o=>o.id===selected&&o.stock);if(!o)return message('Select a shelf first');let free=(o.type==='display'?18:12)-Object.values(o.stock).reduce((a,b)=>a+b,0),total=0;for(const k in game.inventory){const n=Math.min(free,game.inventory[k]);o.stock[k]=(o.stock[k]||0)+n;game.inventory[k]-=n;free-=n;total+=n}save();message('Stocked '+total+' products')}
@@ -153,7 +177,7 @@ function cameraMode(mode){view=mode;syncCameraWalls();firstDragging=false;contro
 for(const mode of ['third','overhead','first'])$(mode).onclick=()=>cameraMode(mode);cameraMode('first');
 
 let phoneOpen=false,phonePage="home",phoneSelection=0;
-const phoneApps=[["📦 Wholesale","stock"],["🪑 Furniture","furniture"],["📈 Business","business"],["⚙ Settings","settings"]];
+const phoneApps=[["📦 Wholesale","stock"],["🪑 Furniture","furniture"],["🏬 Expand","expansion"],["📈 Business","business"],["⚙ Settings","settings"]];
 const stockKeys=["booster","mystery","pin","stickers","binder"],furnitureKeys=["shelf","counter","bin","display"];
 function showPhone(open){phoneOpen=open;$("phone").classList.toggle("active",open);keys={};if(open){phonePage="home";phoneSelection=0;renderPhone()}}
 function backPhone(){if(phonePage==="home")showPhone(false);else{phonePage="home";phoneSelection=0;renderPhone()}}
@@ -173,12 +197,13 @@ function actionPhone(){
 }
 function renderPhone(){
  const root=$("phoneContent");root.replaceChildren();
- const h=document.createElement("h2");h.textContent=phonePage==="home"?"Your Phone":phonePage==="stock"?"Wholesale Store":phonePage==="furniture"?"Furniture Catalog":phonePage==="business"?"Business Dashboard":"Settings";root.append(h);
+ const h=document.createElement("h2");h.textContent=phonePage==="home"?"Your Phone":phonePage==="stock"?"Wholesale Store":phonePage==="furniture"?"Furniture Catalog":phonePage==="business"?"Business Dashboard":phonePage==="expansion"?"Storefront Expansion":"Settings";root.append(h);
  if(phonePage==="home"){
   const grid=document.createElement("div");grid.className="grid";
   phoneApps.forEach((app,i)=>{const b=document.createElement("button");b.textContent=app[0];if(i===phoneSelection)b.classList.add("selected");b.onclick=()=>{phonePage=app[1];phoneSelection=0;renderPhone()};grid.append(b)});root.append(grid);return;
  }
  const back=document.createElement("button");back.textContent="‹ Apps";back.onclick=backPhone;root.append(back);
+ if(phonePage==="expansion"){const info=document.createElement("p");info.textContent="Your starting lease covers the middle 5 columns. Unlock the 3-column west bay or the 4-column east bay independently. Close the shop to renovate.";root.append(info);for(const [side,label,cost] of [["left","West Bay · 3 columns",175],["right","East Bay · 4 columns",280]]){const row=document.createElement("div");row.className="item";const txt=document.createElement("span");txt.textContent=label+" · $"+cost;const btn=document.createElement("button");btn.textContent=game.expansions[side]?"Owned":"Unlock";btn.disabled=game.expansions[side]||game.cash<cost||game.open;btn.onclick=()=>{if(game.open)return message("Close shop before expanding");if(game.cash<cost)return message("Not enough cash");if(game.expansions[side])return;game.cash-=cost;game.expansions[side]=true;syncExpansion();save();renderPhone();message(label+" unlocked! You can build in the new space.")};row.append(txt,btn);root.append(row)}return}
  if(phonePage==="stock"||phonePage==="furniture"){
   const names=phonePage==="stock"?stockKeys:furnitureKeys;
   names.forEach((name,i)=>{const row=document.createElement("div");row.className="item";if(i===phoneSelection)row.classList.add("selected");
@@ -198,9 +223,9 @@ function phoneKeyboard(e){
  if(["arrowup","arrowdown","arrowleft","arrowright"," ","escape","enter"].includes(k))e.preventDefault();
  if(k==="escape"){backPhone();return true}
  if(phonePage==="home"){
-  if(k==="arrowright")phoneSelection=(phoneSelection+1)%4;
-  if(k==="arrowleft")phoneSelection=(phoneSelection+3)%4;
-  if(k==="arrowdown")phoneSelection=(phoneSelection+3)%4;
+  if(k==="arrowright")phoneSelection=(phoneSelection+1)%5;
+  if(k==="arrowleft")phoneSelection=(phoneSelection+4)%5;
+  if(k==="arrowdown")phoneSelection=(phoneSelection+3)%5;
   if(k==="arrowup")phoneSelection=(phoneSelection+1)%4;
   if(k===" "||k==="enter"){phonePage=phoneApps[phoneSelection][1];phoneSelection=0}
  }else if(phonePage==="stock"||phonePage==="furniture"){
@@ -225,7 +250,7 @@ function loop(now){requestAnimationFrame(loop);const dt=Math.min(.05,(now-last)/
  const rawX=(keys.d||keys.arrowright?1:0)-(keys.a||keys.arrowleft?1:0),rawY=(keys.s||keys.arrowdown?1:0)-(keys.w||keys.arrowup?1:0);
  let dx=rawX,dy=rawY;
  if(view==='first'){dx=Math.cos(facing)*rawX+Math.sin(facing)*rawY;dy=-Math.sin(facing)*rawX+Math.cos(facing)*rawY;}
- const len=Math.hypot(dx,dy);if(len>0){dx/=len;dy/=len;const nx=Math.max(-42,Math.min(N+42,game.player.x+dx*dt*2.5)),ny=Math.max(-24,Math.min(M+38,game.player.y+dy*dt*2.5));const free=(gx,gy)=>{const wx=gx-N/2+.5,wz=gy-M/2+.5;return !game.objects.some(o=>Math.hypot(o.x-gx,o.y-gy)<.65)&&!neighborBounds.some(b=>Math.hypot(wx-b.x,wz-b.z)<b.radius)&&!(Math.abs(wx)<5.9&&wz< -M/2-.22&&wz> -M/2-1.1)&&!(Math.abs(wx)>N/2-.25&&Math.abs(wz)<M/2+.18)&&!(Math.abs(wx)>1.15&&wz>M/2-.12&&wz<M/2+.7)};if(free(nx,game.player.y))game.player.x=nx;if(free(game.player.x,ny))game.player.y=ny;if(view!=='first')facing=Math.atan2(-dx,-dy);}
+ const len=Math.hypot(dx,dy);if(len>0){dx/=len;dy/=len;const nx=Math.max(-42,Math.min(N+42,game.player.x+dx*dt*2.5)),ny=Math.max(-24,Math.min(M+38,game.player.y+dy*dt*2.5));const free=(gx,gy)=>{const wx=gx-N/2+.5,wz=gy-M/2+.5;return (ownedColumn(Math.floor(gx))||wz>M/2+.7||wz < -M/2-1.1)&&!(Math.abs(wz)<M/2+.1&&((!game.expansions.left&&wx < -2.53)||(!game.expansions.right&&wx > 2.53)))&&!game.objects.some(o=>Math.hypot(o.x-gx,o.y-gy)<.65)&&!neighborBounds.some(b=>Math.hypot(wx-b.x,wz-b.z)<b.radius)&&!(Math.abs(wx)<5.9&&wz< -M/2-.22&&wz> -M/2-1.1)&&!(Math.abs(wx)>N/2-.25&&Math.abs(wz)<M/2+.18)&&!(Math.abs(wx)>1.15&&wz>M/2-.12&&wz<M/2+.7)};if(free(nx,game.player.y))game.player.x=nx;if(free(game.player.x,ny))game.player.y=ny;if(view!=='first')facing=Math.atan2(-dx,-dy);}
  const [x,z]=coord(game.player.x,game.player.y);player.position.set(x,0,z);
  player.rotation.y=facing+Math.PI;player.visible=view!=='first';if(mixer)mixer.update(len?dt:0);
  for(let i=0;i<player.userData.parts.length;i++)player.userData.parts[i].rotation.x=len?Math.sin(now*.011+i*Math.PI)*.35:0;
