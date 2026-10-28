@@ -39,13 +39,13 @@ function place(x,y){
   if(game.open)return notify('Close the shop before building.');
   if((x===5&&y===8)||(x===6&&y===8)||(x===game.player.x&&y===game.player.y)||game.objects.some(o=>o.x===x&&o.y===y))return notify('That square is occupied or blocks the entrance.');
   if(game.cash<item.cost)return notify('Not enough money.');
-  game.cash-=item.cost;game.objects.push({id:++nextId,x,y,type:t,stock:{}});placing=null;notify('Placed '+item.name+'.');save();return;
+  game.cash-=item.cost;game.objects.push({id:++nextId,x,y,type:t,...(item.capacity?{stock:{}}:{})});placing=null;notify('Placed '+item.name+'.');save();return;
  }
  const obj=game.objects.find(o=>o.x===x&&o.y===y);
- if(obj?.stock){selected=obj.id;renderUI();notify('Selected '+FURNITURE[obj.type].name+'. Click STOCK SHELF below or press T to transfer your warehouse items.');}
+ if(obj&&obj.stock){selected=obj.id;renderUI();notify('Selected '+FURNITURE[obj.type].name+'. Click STOCK SHELF below or press T to transfer your warehouse items.');}
 }
 function stockShelf(){
- const shelf=game.objects.find(o=>o.id===selected&&o.stock);if(!shelf)return notify('Click a shelf or display first.');
+ const shelf=game.objects.find(o=>o.id===selected&&o.stock&&FURNITURE[o.type].capacity);if(!shelf)return notify('Click a shelf or display first.');
  let capacity=FURNITURE[shelf.type].capacity-Object.values(shelf.stock).reduce((a,b)=>a+b,0),moved=0;
  for(const p of Object.keys(game.inventory)){if(capacity<=0)break;const n=Math.min(capacity,game.inventory[p]);shelf.stock[p]=(shelf.stock[p]||0)+n;game.inventory[p]-=n;capacity-=n;moved+=n;}
  notify(moved?'Stocked '+moved+' items.':'No room or inventory to stock.');save();
@@ -56,7 +56,7 @@ function checkout(){
  const q=game.customers.find(u=>u.state==='queue');if(!q)return notify('No customers at checkout yet.');
  const register=game.objects.find(o=>o.type==='counter');
  if(Math.hypot(game.player.x-register.x,game.player.y-register.y)>2.7)return notify('Walk closer to the register to serve the customer.');
- const shelves=game.objects.filter(o=>o.stock&&Object.values(o.stock).some(n=>n>0));if(!shelves.length){game.customers=game.customers.filter(u=>u!==q);notify('Customer left: nothing in stock!');return;}
+ const shelves=game.objects.filter(o=>o.stock&&FURNITURE[o.type].capacity&&Object.values(o.stock).some(n=>n>0));if(!shelves.length){game.customers=game.customers.filter(u=>u!==q);notify('Customer left: nothing in stock!');return;}
  const options=shelves.flatMap(o=>Object.keys(o.stock).filter(p=>o.stock[p]>0).map(p=>({o,p})));
  const pick=options[Math.floor(Math.random()*options.length)];pick.o.stock[pick.p]--;game.cash+=PRODUCTS[pick.p].price;game.sales++;game.soldToday++;
  game.customers=game.customers.filter(u=>u!==q);notify('Sold '+PRODUCTS[pick.p].label+' for '+money(PRODUCTS[pick.p].price)+'!');save();
