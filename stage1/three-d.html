@@ -13,6 +13,37 @@ function box(g,x,y,z,w,h,d,m){const o=new THREE.Mesh(new THREE.BoxGeometry(w,h,d
 function coord(x,y){return [x-N/2+.5,y-M/2+.5]}
 box(room,0,-.19,0,N+.4,.38,M+.4,wood);
 box(room,0,.012,0,N,.028,M,mat('#b99e7c'));
+// Store reference pass 01: cool porcelain tile floor, ceiling grid and retail spotlights.
+const tileCanvas=document.createElement('canvas');tileCanvas.width=tileCanvas.height=256;
+const tileCtx=tileCanvas.getContext('2d');tileCtx.fillStyle='#a0a7a8';tileCtx.fillRect(0,0,256,256);
+for(let yy=0;yy<4;yy++)for(let xx=0;xx<4;xx++){
+ const px=xx*64,py=yy*64;tileCtx.fillStyle=(xx+yy)%3===0?'#cbd0cf':'#d5d9d6';tileCtx.fillRect(px+2,py+2,60,60);
+ tileCtx.fillStyle='#aeb9b9';tileCtx.globalAlpha=.13;
+ for(let k=0;k<7;k++)tileCtx.fillRect(px+((k*19+xx*7)%55)+4,py+((k*23+yy*11)%56)+4,11,1);
+ tileCtx.globalAlpha=1;
+}
+const tileTexture=new THREE.CanvasTexture(tileCanvas);tileTexture.wrapS=tileTexture.wrapT=THREE.RepeatWrapping;tileTexture.repeat.set(N/4,M/4);tileTexture.colorSpace=THREE.SRGBColorSpace;
+box(room,0,.032,0,N,.025,M,new THREE.MeshStandardMaterial({map:tileTexture,roughness:.92}));
+const ceilingFeatures=new THREE.Group();room.add(ceilingFeatures);
+const ceilingMat=mat('#c6cacc'),seamMat=mat('#879197'),trackMat=mat('#323a3f');
+for(let x=-N/2;x<=N/2+.01;x+=1)box(ceilingFeatures,x,2.93,0,.018,.012,M,seamMat);
+for(let z=-M/2;z<=M/2+.01;z+=1)box(ceilingFeatures,0,2.93,z,N,.012,.018,seamMat);
+for(const x of [-3.45,0,3.45])for(const z of [-2.5,1.1]){
+ box(ceilingFeatures,x,2.87,z,.045,.07,2.9,trackMat);
+ for(const dz of [-1.02,0,1.02]){
+  const lamp=new THREE.Mesh(new THREE.CylinderGeometry(.085,.13,.19,10),trackMat);
+  lamp.rotation.z=.27;lamp.position.set(x,2.75,z+dz);ceilingFeatures.add(lamp);
+  const lens=new THREE.Mesh(new THREE.CircleGeometry(.073,10),new THREE.MeshBasicMaterial({color:'#fff1ca'}));lens.rotation.x=Math.PI/2;lens.position.set(x+.02,2.64,z+dz);ceilingFeatures.add(lens);
+ }
+}
+const retailGlass=new THREE.MeshPhysicalMaterial({color:'#b8dce2',transparent:true,opacity:.21,roughness:.07,metalness:0,depthWrite:false,side:THREE.DoubleSide});
+for(const x of [-3.1,3.1]){
+ box(room,x,1.5,M/2+.03,2.55,2.35,.035,retailGlass);
+ box(room,x,2.68,M/2+.075,2.7,.07,.1,mat('#313b40'));
+ box(room,x,.34,M/2+.075,2.7,.08,.1,mat('#313b40'));
+ box(room,x,1.5,M/2+.08,.06,2.36,.095,mat('#313b40'));
+}
+
 box(room,0,1.4,-M/2-.14,N+.3,2.8,.25,white);box(room,-N/2-.14,1.4,0,.25,2.8,M+.3,white);box(room,N/2+.14,1.4,0,.25,2.8,M+.3,white);
 box(room,-3.5,1.2,M/2+.13,5,2.4,.2,white);box(room,3.5,1.2,M/2+.13,5,2.4,.2,white);box(room,0,2.57,M/2+.13,2,.34,.2,metal);
 const sign=box(room,0,2.45,-M/2+.04,4,.7,.12,mat('#246f77'));
@@ -84,7 +115,7 @@ const textures=document.createElement('canvas');textures.width=textures.height=1
 const plaster=new THREE.CanvasTexture(textures);plaster.wrapS=plaster.wrapT=THREE.RepeatWrapping;plaster.repeat.set(3,2);white.map=plaster;white.needsUpdate=true;
 const trim=mat('#8c6950');box(room,0,.1,-M/2+.02,N,.2,.075,trim);box(room,-N/2+.04,.1,0,.075,.2,M,trim);box(room,N/2-.04,.1,0,.075,.2,M,trim);
 const roof=new THREE.Group();scene.add(roof);box(roof,0,3.1,0,N+.5,.24,M+.6,mat('#665d59'));
-const roofPieces=[roof];
+const roofPieces=[roof];roof.add(ceilingFeatures);room.remove(ceilingFeatures);
 function syncCameraWalls(){const building=view==='overhead';roof.visible=!building;for(const o of roofPieces.slice(1))if(o!==sign)o.visible=!building;exterior.visible=true}
 const clouds=new THREE.Group();scene.add(clouds);const cloudMaterial=new THREE.MeshBasicMaterial({color:'#f4f7fa',transparent:true,opacity:.82,depthWrite:false});
 for(let i=0;i<12;i++){const g=new THREE.Group();g.position.set(-70+i*13,16+(i%3)*3,-22+(i%5)*16);for(let j=0;j<3;j++){const m=new THREE.Mesh(new THREE.SphereGeometry(2.4,9,6),cloudMaterial);m.scale.set(1.7,.47,1);m.position.set((j-1)*2.2,(j%2)*.4,0);g.add(m)}clouds.add(g)}
@@ -98,7 +129,14 @@ function person(color){const g=new THREE.Group();const body=mat(color);box(g,0,.
 const player=person('#2e84c1');actors.add(player);let mixer=null;
 new GLTFLoader().load('/models/male/Casual_2.gltf',g=>{const mesh=g.scene,b=new THREE.Box3().setFromObject(mesh),sz=b.getSize(new THREE.Vector3());if(sz.y<.01)return;mesh.scale.setScalar(1.7/sz.y);mesh.position.y=-b.min.y*(1.7/sz.y);player.add(mesh);player.children.forEach(o=>{if(o!==mesh)o.visible=false});if(g.animations.length){mixer=new THREE.AnimationMixer(mesh);mixer.clipAction(g.animations.find(c=>/walk/i.test(c.name))||g.animations[0]).play()}},undefined,()=>{});
 let models=new Map(),signature='';let facing=0,lookPitch=0,firstDragging=false,previousPointer=null;
-function populate(){props.clear();for(const o of game.objects){const g=new THREE.Group();const [x,z]=coord(o.x,o.y);g.position.set(x,0,z);props.add(g);if(o.type==='shelf'||o.type==='display'){for(const h of [.15,.7,1.25])box(g,0,h,0,.84,.08,.7,wood);for(const x of [-.39,.39])box(g,x,.7,0,.07,1.4,.7,metal);const n=Math.min(10,Object.values(o.stock||{}).reduce((a,b)=>a+b,0));for(let i=0;i<n;i++)box(g,-.3+(i%4)*.19,.8+Math.floor(i/4)*.45,0,.13,.16,.2,mat(['#bd555a','#478bba','#f1c16e'][i%3]))}else if(o.type==='counter'){box(g,0,.45,0,.9,.9,.7,mat('#74abbc'));box(g,0,.97,-.12,.5,.13,.35,metal)}else{box(g,0,.32,0,.7,.64,.7,mat('#667e93'))}if(o.id===selected){const ring=new THREE.Mesh(new THREE.RingGeometry(.48,.55,24),new THREE.MeshBasicMaterial({color:0xffec69,side:THREE.DoubleSide}));ring.rotation.x=-Math.PI/2;ring.position.y=.04;g.add(ring)}}}
+function populate(){props.clear();for(const o of game.objects){const g=new THREE.Group();const [x,z]=coord(o.x,o.y);g.position.set(x,0,z);props.add(g);if(o.type==='shelf'||o.type==='display'){const shelfSteel=mat('#505c62');for(const h of [.16,.55,.94,1.33])box(g,0,h,0,.9,.055,.73,shelfSteel);
+for(const x of [-.43,.43])box(g,x,.76,0,.045,1.5,.75,shelfSteel);
+box(g,0,1.49,0,.92,.12,.77,mat('#323c43'));
+for(let shelf=0;shelf<3;shelf++)for(let col=0;col<5;col++){
+ const pack=box(g,-.34+col*.17,.28+shelf*.39,-.08,.125,.2,.23,mat(['#db565c','#459aca','#f4ba47','#79b963','#a879d9'][(col+shelf)%5]));
+ const stripe=box(g,-.34+col*.17,.28+shelf*.39,.044,.1,.026,.006,mat('#fff1cc'));
+}
+const n=Math.min(10,Object.values(o.stock||{}).reduce((a,b)=>a+b,0));for(let i=0;i<n;i++)box(g,-.32+(i%4)*.2,.42+Math.floor(i/4)*.39,.1,.12,.18,.13,mat(['#d45376','#529dc7','#f0c25c'][i%3]))}else if(o.type==='counter'){box(g,0,.45,0,.9,.9,.7,mat('#74abbc'));box(g,0,.97,-.12,.5,.13,.35,metal)}else{box(g,0,.32,0,.7,.64,.7,mat('#667e93'))}if(o.id===selected){const ring=new THREE.Mesh(new THREE.RingGeometry(.48,.55,24),new THREE.MeshBasicMaterial({color:0xffec69,side:THREE.DoubleSide}));ring.rotation.x=-Math.PI/2;ring.position.y=.04;g.add(ring)}}}
 function save(){localStorage.setItem(key,JSON.stringify({...game,open:false}));ui()}
 function message(s){$('status').textContent=s}
 function ui(){$('stats').textContent='LEVEL '+game.level+'  •  $'+game.cash+'  •  Day '+game.day+'  •  '+game.sales+' sales'+(game.open?'  •  OPEN':'');$('stock').textContent='Warehouse: '+Object.entries(game.inventory).map(([k,v])=>k+': '+v).join(' | ');$('unlock').disabled=game.cash<110||game.level>1;for(const b of document.querySelectorAll('[data-build]'))b.disabled=game.open||game.cash<prices[b.dataset.build]||(b.dataset.build==='display'&&game.level<2);for(const b of document.querySelectorAll('[data-buy]')){const k=b.dataset.buy;b.disabled=game.cash<items[k][0]*items[k][2]||(game.level<2&&['stickers','binder'].includes(k))}}
