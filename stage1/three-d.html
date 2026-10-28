@@ -113,7 +113,76 @@ $('open').onclick=()=>{if(game.open){game.open=false;customers.forEach(c=>actors
 $('reset').onclick=()=>{if(confirm('Restart the 3D game?')){game=fresh();customers.forEach(c=>actors.remove(c.mesh));customers=[];save()}};$('export').onclick=()=>{const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(game,null,2)],{type:'application/json'}));a.download='collectiverse-3d-save.json';a.click()};
 function cameraMode(mode){view=mode;syncCameraWalls();firstDragging=false;controls.enabled=mode!=='first';controls.enablePan=mode==='overhead';const [x,z]=coord(game.player.x,game.player.y);if(mode==='overhead'){cam.position.set(0,14,7.4);controls.target.set(0,0,0);controls.minDistance=5;controls.maxDistance=19}else if(mode==='third'){cam.position.set(x+5,5.5,z+7);controls.target.set(x,1,z)}else{cam.position.set(x,1.58,z);cam.rotation.order='YXZ';cam.rotation.set(lookPitch,facing,0)}controls.update();message(mode==='first'?'First person: drag to look, WASD to move, A/D to strafe.':'Camera switched to '+mode)}
 for(const mode of ['third','overhead','first'])$(mode).onclick=()=>cameraMode(mode);cameraMode('first');
-window.onkeydown=e=>{if(['INPUT','TEXTAREA'].includes(e.target.tagName))return;keys[e.key.toLowerCase()]=true;if(e.key.startsWith('Arrow'))e.preventDefault();if(e.repeat)return;if(e.key.toLowerCase()==='e')serve();if(e.key.toLowerCase()==='t')fill()};window.onkeyup=e=>{keys[e.key.toLowerCase()]=false};
+
+let phoneOpen=false,phonePage="home",phoneSelection=0;
+const phoneApps=[["📦 Wholesale","stock"],["🪑 Furniture","furniture"],["📈 Business","business"],["⚙ Settings","settings"]];
+const stockKeys=["booster","mystery","pin","stickers","binder"],furnitureKeys=["shelf","counter","bin","display"];
+function showPhone(open){phoneOpen=open;$("phone").classList.toggle("active",open);keys={};if(open){phonePage="home";phoneSelection=0;renderPhone()}}
+function backPhone(){if(phonePage==="home")showPhone(false);else{phonePage="home";phoneSelection=0;renderPhone()}}
+function actionPhone(){
+ const current=phonePage==="stock"?stockKeys:phonePage==="furniture"?furnitureKeys:[];
+ const name=current[phoneSelection];if(!name)return;
+ if(phonePage==="stock"){
+  if(game.level<2&&(name==="stickers"||name==="binder")){message("Unlock Level 2 first");return}
+  const batch=items[name],cost=batch[0]*batch[2];
+  if(game.cash<cost){message("Not enough money");return}
+  game.cash-=cost;game.inventory[name]+=batch[2];save();message("Ordered "+batch[2]+" "+name);
+ }else{
+  if(name==="display"&&game.level<2){message("Unlock Level 2 first");return}
+  if(game.cash<prices[name]){message("Not enough money");return}
+  placing=name;showPhone(false);cameraMode("overhead");message("Move the cursor to preview placement");
+ }
+}
+function renderPhone(){
+ const root=$("phoneContent");root.replaceChildren();
+ const h=document.createElement("h2");h.textContent=phonePage==="home"?"Your Phone":phonePage==="stock"?"Wholesale Store":phonePage==="furniture"?"Furniture Catalog":phonePage==="business"?"Business Dashboard":"Settings";root.append(h);
+ if(phonePage==="home"){
+  const grid=document.createElement("div");grid.className="grid";
+  phoneApps.forEach((app,i)=>{const b=document.createElement("button");b.textContent=app[0];if(i===phoneSelection)b.classList.add("selected");b.onclick=()=>{phonePage=app[1];phoneSelection=0;renderPhone()};grid.append(b)});root.append(grid);return;
+ }
+ const back=document.createElement("button");back.textContent="‹ Apps";back.onclick=backPhone;root.append(back);
+ if(phonePage==="stock"||phonePage==="furniture"){
+  const names=phonePage==="stock"?stockKeys:furnitureKeys;
+  names.forEach((name,i)=>{const row=document.createElement("div");row.className="item";if(i===phoneSelection)row.classList.add("selected");
+   const label=document.createElement("span");const cost=phonePage==="stock"?items[name][0]*items[name][2]:prices[name];
+   label.textContent=name.toUpperCase()+" · $"+cost;
+   const b=document.createElement("button");b.textContent=phonePage==="stock"?"Order":"Place";b.onclick=()=>{phoneSelection=i;actionPhone();if(phoneOpen)renderPhone()};
+   row.onclick=e=>{if(e.target===b)return;phoneSelection=i;renderPhone()};row.append(label,b);root.append(row);
+  });return;
+ }
+ const p=document.createElement("p");p.textContent=phonePage==="business"?"Level "+game.level+" · Cash $"+game.cash+" · Sales "+game.sales:"Game saves automatically in this browser.";root.append(p);
+ if(phonePage==="business"){const b=document.createElement("button");b.textContent="Unlock Level 2 ($110)";b.disabled=game.level>1||game.cash<110;b.onclick=()=>{$("unlock").click();renderPhone()};root.append(b)}
+}
+function phoneKeyboard(e){
+ const k=e.key.toLowerCase();
+ if(k==="p"){showPhone(!phoneOpen);return true}
+ if(!phoneOpen)return false;
+ if(["arrowup","arrowdown","arrowleft","arrowright"," ","escape","enter"].includes(k))e.preventDefault();
+ if(k==="escape"){backPhone();return true}
+ if(phonePage==="home"){
+  if(k==="arrowright")phoneSelection=(phoneSelection+1)%4;
+  if(k==="arrowleft")phoneSelection=(phoneSelection+3)%4;
+  if(k==="arrowdown")phoneSelection=(phoneSelection+3)%4;
+  if(k==="arrowup")phoneSelection=(phoneSelection+1)%4;
+  if(k===" "||k==="enter"){phonePage=phoneApps[phoneSelection][1];phoneSelection=0}
+ }else if(phonePage==="stock"||phonePage==="furniture"){
+  const count=phonePage==="stock"?stockKeys.length:furnitureKeys.length;
+  if(k==="arrowdown"||k==="arrowright")phoneSelection=(phoneSelection+1)%count;
+  if(k==="arrowup"||k==="arrowleft")phoneSelection=(phoneSelection+count-1)%count;
+  if(k===" "||k==="enter")actionPhone();
+ }
+ if(phoneOpen)renderPhone();
+ return true
+}
+$("qphone").onclick=()=>showPhone(!phoneOpen);
+$("phoneClose").onclick=()=>showPhone(false);
+$("qbuild").onclick=()=>cameraMode("overhead");
+$("qfirst").onclick=()=>cameraMode("first");
+$("qthird").onclick=()=>cameraMode("third");
+$("qopen").onclick=()=>$("open").click();
+$("qserve").onclick=()=>$("serve").click();
+$("qstock").onclick=()=>$("fill").click();
+window.onkeydown=e=>{if(phoneKeyboard(e))return;if(e.key.toLowerCase()==='b'){cameraMode('overhead');return}if(['INPUT','TEXTAREA'].includes(e.target.tagName))return;keys[e.key.toLowerCase()]=true;if(e.key.startsWith('Arrow'))e.preventDefault();if(e.repeat)return;if(e.key.toLowerCase()==='e')serve();if(e.key.toLowerCase()==='t')fill()};window.onkeyup=e=>{keys[e.key.toLowerCase()]=false};
 function loop(now){requestAnimationFrame(loop);const dt=Math.min(.05,(now-last)/1000);last=now;
  const rawX=(keys.d||keys.arrowright?1:0)-(keys.a||keys.arrowleft?1:0),rawY=(keys.s||keys.arrowdown?1:0)-(keys.w||keys.arrowup?1:0);
  let dx=rawX,dy=rawY;
