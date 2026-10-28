@@ -123,11 +123,10 @@ const gateGlass=new THREE.MeshPhysicalMaterial({color:'#88b3c4',transparent:true
 const gateFrame=mat('#344852'),gateTint=mat('#acc2b2');
 function partitionPanel(x,side){
  const group=new THREE.Group();bayPartitions.add(group);group.position.x=x;
- box(group,0,1.4,0,.09,2.8,M,gateGlass);
- for(const z of [-M/2,0,M/2])box(group,0,1.4,z,.15,2.85,.13,gateFrame);
- box(group,0,2.77,0,.17,.11,M,gateFrame);box(group,0,.08,0,.14,.15,M,gateFrame);
- const banner=makeSign(group,side==='left'?'SMALL EXPANSION':'LARGE EXPANSION',2.7);
- banner.position.set(side==='left'?.12:-.12,1.9,0);banner.rotation.y=side==='left'?Math.PI/2:-Math.PI/2;
+ // Opaque architectural partition: no see-through glass or expansion labels.
+ box(group,0,1.4,0,.18,2.8,M,white);
+ box(group,0,.12,0,.21,.24,M,trim);
+ box(group,0,2.77,0,.22,.1,M,gateFrame);
  return group;
 }
 const leftGate=partitionPanel(-3,'left'),rightGate=partitionPanel(2,'right');
