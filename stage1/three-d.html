@@ -62,7 +62,7 @@ window.onkeydown=e=>{if(['INPUT','TEXTAREA'].includes(e.target.tagName))return;k
 function loop(now){requestAnimationFrame(loop);const dt=Math.min(.05,(now-last)/1000);last=now;
  const rawX=(keys.d||keys.arrowright?1:0)-(keys.a||keys.arrowleft?1:0),rawY=(keys.s||keys.arrowdown?1:0)-(keys.w||keys.arrowup?1:0);
  let dx=rawX,dy=rawY;
- if(view==='first'){dx=Math.cos(facing)*rawX-Math.sin(facing)*rawY;dy=-Math.sin(facing)*rawX-Math.cos(facing)*rawY;}
+ if(view==='first'){dx=Math.cos(facing)*rawX+Math.sin(facing)*rawY;dy=-Math.sin(facing)*rawX+Math.cos(facing)*rawY;}
  const len=Math.hypot(dx,dy);if(len>0){dx/=len;dy/=len;const nx=Math.max(-30,Math.min(N+30,game.player.x+dx*dt*2.5)),ny=Math.max(-12,Math.min(M+23,game.player.y+dy*dt*2.5));if(!game.objects.some(o=>o.x===Math.round(nx)&&o.y===Math.round(game.player.y)))game.player.x=nx;if(!game.objects.some(o=>o.x===Math.round(game.player.x)&&o.y===Math.round(ny)))game.player.y=ny;if(view!=='first')facing=Math.atan2(-dx,-dy);}
  const [x,z]=coord(game.player.x,game.player.y);player.position.set(x,0,z);
  player.rotation.y=facing+Math.PI;player.visible=view!=='first';if(mixer)mixer.update(len?dt:0);
