@@ -12,13 +12,13 @@ const CHARACTER_PACKS = {
     title: 'Ultimate Modular Men — February 2022',
     folder: 'Ultimate Modular Men- Feb 2022',
     defaultOutfit: 'Casual_2',
-    outfits: ['Casual_2', 'Casual_Hoodie', 'Worker', 'Suit', 'Beach', 'Farmer', 'Punk', 'Adventurer', 'King', 'Spacesuit', 'Swat'],
+    outfits: ['Casual_2', 'Casual_Hoodie', 'Worker'],
   },
   female: {
     title: 'Ultimate Modular Women — April 2022',
     folder: 'Ultimate Modular Women - April 2022',
     defaultOutfit: 'Casual',
-    outfits: ['Casual', 'Worker', 'Suit', 'Formal', 'Punk', 'Adventurer', 'Medieval', 'SciFi', 'Soldier', 'Witch'],
+    outfits: ['Casual', 'Worker'],
   },
 };
 
