@@ -130,7 +130,7 @@ function partitionPanel(x,side){
  banner.position.set(side==='left'?.12:-.12,1.9,0);banner.rotation.y=side==='left'?Math.PI/2:-Math.PI/2;
  return group;
 }
-const leftGate=partitionPanel(-2.5,'left'),rightGate=partitionPanel(2.5,'right');
+const leftGate=partitionPanel(-3,'left'),rightGate=partitionPanel(2,'right');
 const bayDecor=new THREE.Group();room.add(bayDecor);
 for(const [cx,w] of [[-4.5,3],[4,4]]){
  box(bayDecor,cx,.042,0,w-.08,.035,M-.1,mat('#b6bdbd'));
@@ -250,7 +250,7 @@ function loop(now){requestAnimationFrame(loop);const dt=Math.min(.05,(now-last)/
  const rawX=(keys.d||keys.arrowright?1:0)-(keys.a||keys.arrowleft?1:0),rawY=(keys.s||keys.arrowdown?1:0)-(keys.w||keys.arrowup?1:0);
  let dx=rawX,dy=rawY;
  if(view==='first'){dx=Math.cos(facing)*rawX+Math.sin(facing)*rawY;dy=-Math.sin(facing)*rawX+Math.cos(facing)*rawY;}
- const len=Math.hypot(dx,dy);if(len>0){dx/=len;dy/=len;const nx=Math.max(-42,Math.min(N+42,game.player.x+dx*dt*2.5)),ny=Math.max(-24,Math.min(M+38,game.player.y+dy*dt*2.5));const free=(gx,gy)=>{const wx=gx-N/2+.5,wz=gy-M/2+.5;return (ownedColumn(Math.floor(gx))||wz>M/2+.7||wz < -M/2-1.1)&&!(Math.abs(wz)<M/2+.1&&((!game.expansions.left&&wx < -2.53)||(!game.expansions.right&&wx > 2.53)))&&!game.objects.some(o=>Math.hypot(o.x-gx,o.y-gy)<.65)&&!neighborBounds.some(b=>Math.hypot(wx-b.x,wz-b.z)<b.radius)&&!(Math.abs(wx)<5.9&&wz< -M/2-.22&&wz> -M/2-1.1)&&!(Math.abs(wx)>N/2-.25&&Math.abs(wz)<M/2+.18)&&!(Math.abs(wx)>1.15&&wz>M/2-.12&&wz<M/2+.7)};if(free(nx,game.player.y))game.player.x=nx;if(free(game.player.x,ny))game.player.y=ny;if(view!=='first')facing=Math.atan2(-dx,-dy);}
+ const len=Math.hypot(dx,dy);if(len>0){dx/=len;dy/=len;const nx=Math.max(-42,Math.min(N+42,game.player.x+dx*dt*2.5)),ny=Math.max(-24,Math.min(M+38,game.player.y+dy*dt*2.5));const free=(gx,gy)=>{const wx=gx-N/2+.5,wz=gy-M/2+.5;return (ownedColumn(Math.floor(gx))||wz>M/2+.7||wz < -M/2-1.1)&&!(Math.abs(wz)<M/2+.1&&((!game.expansions.left&&wx < -3.03)||(!game.expansions.right&&wx > 2.03)))&&!game.objects.some(o=>Math.hypot(o.x-gx,o.y-gy)<.65)&&!neighborBounds.some(b=>Math.hypot(wx-b.x,wz-b.z)<b.radius)&&!(Math.abs(wx)<5.9&&wz< -M/2-.22&&wz> -M/2-1.1)&&!(Math.abs(wx)>N/2-.25&&Math.abs(wz)<M/2+.18)&&!(Math.abs(wx)>1.15&&wz>M/2-.12&&wz<M/2+.7)};if(free(nx,game.player.y))game.player.x=nx;if(free(game.player.x,ny))game.player.y=ny;if(view!=='first')facing=Math.atan2(-dx,-dy);}
  const [x,z]=coord(game.player.x,game.player.y);player.position.set(x,0,z);
  player.rotation.y=facing+Math.PI;player.visible=view!=='first';if(mixer)mixer.update(len?dt:0);
  for(let i=0;i<player.userData.parts.length;i++)player.userData.parts[i].rotation.x=len?Math.sin(now*.011+i*Math.PI)*.35:0;
